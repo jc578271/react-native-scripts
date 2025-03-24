@@ -40,7 +40,6 @@ const DEFAULT_PLATFORM = "all";
 const DEFAULT_IOS_PROJECT_NAME = "MyApp";
 const DEFAULT_VERSION = "1.0.0";
 const DEFAULT_PRIMARY_COLOR = "#FFFFFF";
-const DEFAULT_THEME_COLOR = "#000000";
 const DEFAULT_KEYCHAINS = [];
 
 // Function to load config from file
@@ -63,7 +62,6 @@ function loadConfig(configFile) {
       APP_ICON: config.app_icon || DEFAULT_APP_ICON,
       LOGO_ICON: config.logo_icon || DEFAULT_LOGO_ICON,
       PRIMARY_COLOR: config.primary_color || DEFAULT_PRIMARY_COLOR,
-      THEME_COLOR: config.theme_color || DEFAULT_THEME_COLOR,
       PLATFORM: config.platform || DEFAULT_PLATFORM,
       IOS_PROJECT_NAME: config.ios_project_name || DEFAULT_IOS_PROJECT_NAME,
       VERSION: config.version || DEFAULT_VERSION,
@@ -285,10 +283,6 @@ function updateAndroidConfig(config) {
     /<color name="primary_color">.*<\/color>/,
     `<color name="primary_color">${config.PRIMARY_COLOR}</color>`
   );
-  colorsContent = colorsContent.replace(
-    /<color name="theme_color">.*<\/color>/,
-    `<color name="theme_color">${config.THEME_COLOR}</color>`
-  );
   fs.writeFileSync(colorsPath, colorsContent);
 
   // Update night colors if file exists
@@ -297,10 +291,6 @@ function updateAndroidConfig(config) {
     colorsNightContent = colorsNightContent.replace(
       /<color name="primary_color">.*<\/color>/,
       `<color name="primary_color">${config.PRIMARY_COLOR}</color>`
-    );
-    colorsNightContent = colorsNightContent.replace(
-      /<color name="theme_color">.*<\/color>/,
-      `<color name="theme_color">${config.THEME_COLOR}</color>`
     );
     fs.writeFileSync(colorsNightPath, colorsNightContent);
   }
@@ -462,7 +452,6 @@ function main() {
     colors.blue
   );
   log(`Primary Color: ${config.PRIMARY_COLOR}`, colors.blue);
-  log(`Theme Color: ${config.THEME_COLOR}`, colors.blue);
   log(`Platform: ${config.PLATFORM}`, colors.blue);
   log(`App Icon: ${config.APP_ICON}`, colors.blue);
   log(`Logo Icon: ${config.LOGO_ICON}`, colors.blue);
