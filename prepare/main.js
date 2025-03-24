@@ -282,12 +282,12 @@ function updateAndroidConfig(config) {
   // Update colors
   let colorsContent = fs.readFileSync(colorsPath, "utf8");
   colorsContent = colorsContent.replace(
-    /<color name="primary">.*<\/color>/,
-    `<color name="primary">${config.PRIMARY_COLOR}</color>`
+    /<color name="primary_color">.*<\/color>/,
+    `<color name="primary_color">${config.PRIMARY_COLOR}</color>`
   );
   colorsContent = colorsContent.replace(
-    /<color name="theme">.*<\/color>/,
-    `<color name="theme">${config.THEME_COLOR}</color>`
+    /<color name="theme_color">.*<\/color>/,
+    `<color name="theme_color">${config.THEME_COLOR}</color>`
   );
   fs.writeFileSync(colorsPath, colorsContent);
 
@@ -295,12 +295,12 @@ function updateAndroidConfig(config) {
   if (fs.existsSync(colorsNightPath)) {
     let colorsNightContent = fs.readFileSync(colorsNightPath, "utf8");
     colorsNightContent = colorsNightContent.replace(
-      /<color name="primary">.*<\/color>/,
-      `<color name="primary">${config.PRIMARY_COLOR}</color>`
+      /<color name="primary_color">.*<\/color>/,
+      `<color name="primary_color">${config.PRIMARY_COLOR}</color>`
     );
     colorsNightContent = colorsNightContent.replace(
-      /<color name="theme">.*<\/color>/,
-      `<color name="theme">${config.THEME_COLOR}</color>`
+      /<color name="theme_color">.*<\/color>/,
+      `<color name="theme_color">${config.THEME_COLOR}</color>`
     );
     fs.writeFileSync(colorsNightPath, colorsNightContent);
   }
