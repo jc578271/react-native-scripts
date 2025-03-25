@@ -262,12 +262,51 @@ function updateAndroidConfig(config) {
     process.exit(1);
   }
 
-  // Update applicationId in build.gradle
+  // Update applicationId in build.gradle with a more flexible pattern
   let gradleContent = fs.readFileSync(gradlePath, "utf8");
-  gradleContent = gradleContent.replace(
-    /applicationId "[^"]*"/,
-    `applicationId "${config.ANDROID_APP_ID}"`
-  );
+
+  // Look for applicationId both with and without namespace block
+  const appIdPattern = /applicationId\s+"([^"]*)"/;
+  if (appIdPattern.test(gradleContent)) {
+    // Direct applicationId pattern
+    gradleContent = gradleContent.replace(
+        appIdPattern,
+        `applicationId "${config.ANDROID_APP_ID}"`
+    );
+    log(`Updated applicationId directly to: ${config.ANDROID_APP_ID}`, colors.blue);
+  } else {
+    // Look inside defaultConfig block
+    const defaultConfigPattern = /defaultConfig\s+{([^}]*)}/s;
+    const defaultConfigMatch = gradleContent.match(defaultConfigPattern);
+
+    if (defaultConfigMatch) {
+      const defaultConfigContent = defaultConfigMatch[1];
+      const updatedDefaultConfig = defaultConfigContent.replace(
+          /applicationId\s+"([^"]*)"/,
+          `applicationId "${config.ANDROID_APP_ID}"`
+      );
+
+      if (updatedDefaultConfig !== defaultConfigContent) {
+        gradleContent = gradleContent.replace(
+            defaultConfigPattern,
+            `defaultConfig {${updatedDefaultConfig}}`
+        );
+        log(`Updated applicationId in defaultConfig to: ${config.ANDROID_APP_ID}`, colors.blue);
+      } else {
+        // If not found, add it to defaultConfig
+        const newDefaultConfig = defaultConfigContent.trim() + `\n        applicationId "${config.ANDROID_APP_ID}"`;
+        gradleContent = gradleContent.replace(
+            defaultConfigPattern,
+            `defaultConfig {${newDefaultConfig}\n    }`
+        );
+        log(`Added applicationId to defaultConfig: ${config.ANDROID_APP_ID}`, colors.blue);
+      }
+    } else {
+      log(`Warning: Could not find appropriate location to update applicationId in build.gradle`, colors.yellow);
+    }
+  }
+
+  fs.writeFileSync(gradlePath, gradleContent);
 
   // Update app_name in strings.xml
   let stringsContent = fs.readFileSync(stringsPath, "utf8");
