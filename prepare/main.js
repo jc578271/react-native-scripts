@@ -35,6 +35,7 @@ const DEFAULT_BUNDLE_ID = "com.myapp.default";
 const DEFAULT_TEAM_ID = "ABCDEF1234";
 const DEFAULT_DISPLAY_NAME = "My App";
 const DEFAULT_APP_ICON = "";
+const DEFAULT_APP_PROVIDER = "com.myapp.default.RNProvider";
 const DEFAULT_LOGO_ICON = "";
 const DEFAULT_PLATFORM = "all";
 const DEFAULT_IOS_PROJECT_NAME = "MyApp";
@@ -65,6 +66,7 @@ function loadConfig(configFile) {
       PLATFORM: config.platform || DEFAULT_PLATFORM,
       IOS_PROJECT_NAME: config.ios_project_name || DEFAULT_IOS_PROJECT_NAME,
       VERSION: config.version || DEFAULT_VERSION,
+      APP_PROVIDER: config.app_provider || DEFAULT_APP_PROVIDER,
       KEYCHAINS: Array.isArray(config.keychains)
         ? config.keychains
         : DEFAULT_KEYCHAINS,
@@ -308,12 +310,25 @@ function updateAndroidConfig(config) {
 
   fs.writeFileSync(gradlePath, gradleContent);
 
-  // Update app_name in strings.xml
+  // Update app_name and app_provider in strings.xml
   let stringsContent = fs.readFileSync(stringsPath, "utf8");
-  stringsContent = stringsContent.replace(
-    /<string name="app_name">.*<\/string>/,
-    `<string name="app_name">${config.APP_NAME}</string>`
-  );
+
+  // Update app_name
+  if (stringsContent.includes('<string name="app_name">')) {
+    stringsContent = stringsContent.replace(
+      /<string name="app_name">.*<\/string>/,
+      `<string name="app_name">${config.APP_NAME}</string>`
+    );
+  }
+
+  // Check if app_provider already exists in strings.xml
+  if (stringsContent.includes('<string name="app_provider">')) {
+    // Replace existing app_provider
+    stringsContent = stringsContent.replace(
+        /<string name="app_provider">.*<\/string>/,
+        `<string name="app_provider">${config.APP_PROVIDER}</string>`
+    );
+  }
   fs.writeFileSync(stringsPath, stringsContent);
 
   // Update colors
