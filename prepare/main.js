@@ -14,6 +14,7 @@ const updateIosBundleUrls = require("./bundle_urls");
 const setupGoogleServiceInfo = require("./google_service_info");
 const setupKeychainsIos = require("./keychains_ios");
 const setupKeychainsAndroid = require("./keychains_android");
+const copyLauncherIcons = require("./ic_launcher");
 
 // Console colors for better output
 const colors = {
@@ -67,6 +68,7 @@ function loadConfig(configFile) {
       IOS_PROJECT_NAME: config.ios_project_name || DEFAULT_IOS_PROJECT_NAME,
       VERSION: config.version || DEFAULT_VERSION,
       APP_PROVIDER: config.app_provider || DEFAULT_APP_PROVIDER,
+      IC_LAUNCHER: config.ic_launcher || null, // Add this line to read ic_launcher from config
       KEYCHAINS: Array.isArray(config.keychains)
         ? config.keychains
         : DEFAULT_KEYCHAINS,
@@ -222,6 +224,14 @@ function updateIosConfig(config) {
 
   // Setup Google Service Info
   setupGoogleServiceInfo(config.CONFIG_FILE);
+
+  // Generate app assets first
+  generateAppAssets({
+    configFile: config.CONFIG_FILE,
+    appIcon: config.APP_ICON,
+    logoIcon: config.LOGO_ICON,
+    iosProjectName: config.IOS_PROJECT_NAME,
+  });
 
   log("iOS configuration updated successfully.", colors.green);
 }
@@ -393,6 +403,16 @@ function updateAndroidConfig(config) {
   // Setup keychains in Android
   setupKeychainsAndroid(config.CONFIG_FILE);
 
+  // Add this block to copy ic_launcher resources if defined
+  if (config.IC_LAUNCHER) {
+    log("Copying IC Launcher resources...", colors.blue);
+
+    copyLauncherIcons({
+      source: config.IC_LAUNCHER,
+      androidResPath: 'android/app/src/main/res'
+    });
+  }
+
   log("Android configuration updated successfully.", colors.green);
 }
 
@@ -517,14 +537,6 @@ function main() {
     }
   }
   log("=========================", colors.green);
-
-  // Generate app assets first
-  generateAppAssets({
-    configFile: args.configFile,
-    appIcon: config.APP_ICON,
-    logoIcon: config.LOGO_ICON,
-    iosProjectName: config.IOS_PROJECT_NAME,
-  });
 
   // Update configurations based on platform
   if (config.PLATFORM === "ios" || config.PLATFORM === "all") {
