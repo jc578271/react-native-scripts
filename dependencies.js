@@ -22,8 +22,8 @@ const packageJson = require(packageJsonPath);
 
 // Ensure workspace configuration is correct
 if (
-  !packageJson.workspaces ||
-  !packageJson.workspaces.includes(`${PACKAGES_DIR}/*`)
+    !packageJson.workspaces ||
+    !packageJson.workspaces.includes(`${PACKAGES_DIR}/*`)
 ) {
   if (!packageJson.workspaces) {
     packageJson.workspaces = [`${PACKAGES_DIR}/*`];
@@ -35,20 +35,52 @@ if (
   console.log(`📝 Updated workspaces to include "${PACKAGES_DIR}/*"`);
 }
 
-// Check if the packages directory exists
+// Check if the packages directory exists and is accessible - skip processing local packages if not
 const packagesDir = path.resolve(`./${PACKAGES_DIR}`);
-if (!fs.existsSync(packagesDir)) {
-  console.log(`❌ ${PACKAGES_DIR}/ directory not found. Creating it...`);
-  fs.mkdirSync(packagesDir, { recursive: true });
+let packagesExist = false;
+let hasPermission = true;
+
+try {
+  packagesExist = fs.existsSync(packagesDir);
+
+  // Additional permission check - try to access directory
+  if (packagesExist) {
+    // Try to read directory to check permissions
+    fs.accessSync(packagesDir, fs.constants.R_OK);
+  }
+} catch (error) {
+  if (error.code === "EACCES") {
+    hasPermission = false;
+    console.log(
+        `❌ No permission to access ${PACKAGES_DIR}/ directory. Skipping local packages processing.`
+    );
+  } else {
+    console.error(`❌ Error checking ${PACKAGES_DIR}/: ${error.message}`);
+  }
+}
+
+if (!packagesExist) {
+  console.log(
+      `❌ ${PACKAGES_DIR}/ directory not found. Skipping local packages processing.`
+  );
 }
 
 // Function to find all local packages
 function findLocalPackages() {
   const localPackages = {};
 
-  if (!fs.existsSync(packagesDir)) return localPackages;
+  if (!packagesExist || !hasPermission) return localPackages;
 
-  const entries = fs.readdirSync(packagesDir, { withFileTypes: true });
+  let entries = [];
+  try {
+    entries = fs.readdirSync(packagesDir, { withFileTypes: true });
+  } catch (error) {
+    console.error(
+        `❌ Error reading ${PACKAGES_DIR}/ directory: ${error.message}`
+    );
+    hasPermission = false;
+    return localPackages;
+  }
 
   for (const entry of entries) {
     if (entry.isDirectory()) {
@@ -64,12 +96,12 @@ function findLocalPackages() {
               version: pkgJson.version || "1.0.0",
             };
             console.log(
-              `✅ Found local package: ${pkgJson.name} in ${PACKAGES_DIR}/${entry.name}`
+                `✅ Found local package: ${pkgJson.name} in ${PACKAGES_DIR}/${entry.name}`
             );
           }
         } catch (error) {
           console.warn(
-            `⚠️ Error reading package.json in ${packageDir}: ${error.message}`
+              `⚠️ Error reading package.json in ${packageDir}: ${error.message}`
           );
         }
       }
@@ -81,11 +113,13 @@ function findLocalPackages() {
 
 // Get all local packages
 const localPackages = findLocalPackages();
-console.log(
-  `Found ${
-    Object.keys(localPackages).length
-  } local packages in ${PACKAGES_DIR}/`
-);
+if (packagesExist && hasPermission) {
+  console.log(
+      `Found ${
+          Object.keys(localPackages).length
+      } local packages in ${PACKAGES_DIR}/`
+  );
+}
 
 // Track changes
 let hasChanges = false;
@@ -93,14 +127,14 @@ let hasChanges = false;
 // Update dependencies based on what's available locally
 console.log("\nChecking regular dependencies...");
 for (const [depName, gitUrl] of Object.entries(
-  gitPackages.dependencies || {}
+    gitPackages.dependencies || {}
 )) {
-  if (depName in localPackages) {
+  if (packagesExist && hasPermission && depName in localPackages) {
     // Package exists locally, use workspace reference
     const localPath = `link:./${PACKAGES_DIR}/${localPackages[depName].path}`;
     if (packageJson.dependencies[depName] !== localPath) {
       console.log(
-        `🔄 Using local ${depName} from ${PACKAGES_DIR}/${localPackages[depName].path}`
+          `🔄 Using local ${depName} from ${PACKAGES_DIR}/${localPackages[depName].path}`
       );
       packageJson.dependencies[depName] = localPath;
       hasChanges = true;
@@ -108,15 +142,15 @@ for (const [depName, gitUrl] of Object.entries(
   } else {
     // No local package, use git
     if (
-      packageJson.dependencies[depName] !== gitUrl &&
-      packageJson.dependencies[depName]
+        packageJson.dependencies[depName] !== gitUrl &&
+        packageJson.dependencies[depName]
     ) {
       console.log(`🔄 Using git repository for ${depName}: ${gitUrl}`);
       packageJson.dependencies[depName] = gitUrl;
       hasChanges = true;
     } else if (!packageJson.dependencies[depName]) {
       console.log(
-        `⚠️ ${depName} is in git_packages.json but not in package.json dependencies`
+          `⚠️ ${depName} is in git_packages.json but not in package.json dependencies`
       );
     }
   }
@@ -124,14 +158,14 @@ for (const [depName, gitUrl] of Object.entries(
 
 console.log("\nChecking devDependencies...");
 for (const [depName, gitUrl] of Object.entries(
-  gitPackages.devDependencies || {}
+    gitPackages.devDependencies || {}
 )) {
-  if (depName in localPackages) {
+  if (packagesExist && hasPermission && depName in localPackages) {
     // Package exists locally, use workspace reference
     const localPath = `link:./${PACKAGES_DIR}/${localPackages[depName].path}`;
     if (packageJson.devDependencies[depName] !== localPath) {
       console.log(
-        `🔄 Using local ${depName} from ${PACKAGES_DIR}/${localPackages[depName].path}`
+          `🔄 Using local ${depName} from ${PACKAGES_DIR}/${localPackages[depName].path}`
       );
       if (!packageJson.devDependencies) packageJson.devDependencies = {};
       packageJson.devDependencies[depName] = localPath;
@@ -140,69 +174,71 @@ for (const [depName, gitUrl] of Object.entries(
   } else {
     // No local package, use git
     if (
-      packageJson.devDependencies &&
-      packageJson.devDependencies[depName] !== gitUrl &&
-      packageJson.devDependencies[depName]
+        packageJson.devDependencies &&
+        packageJson.devDependencies[depName] !== gitUrl &&
+        packageJson.devDependencies[depName]
     ) {
       console.log(`🔄 Using git repository for ${depName}: ${gitUrl}`);
       packageJson.devDependencies[depName] = gitUrl;
       hasChanges = true;
     } else if (
-      !packageJson.devDependencies ||
-      !packageJson.devDependencies[depName]
+        !packageJson.devDependencies ||
+        !packageJson.devDependencies[depName]
     ) {
       console.log(
-        `⚠️ ${depName} is in git_packages.json devDependencies but not in package.json devDependencies`
+          `⚠️ ${depName} is in git_packages.json devDependencies but not in package.json devDependencies`
       );
     }
   }
 }
 
-// Check for link: dependencies that no longer exist in regular dependencies
-for (const [depName, depValue] of Object.entries(
-  packageJson.dependencies || {}
-)) {
-  if (
-    typeof depValue === "string" &&
-    depValue.startsWith("link:") &&
-    !(depName in localPackages)
-  ) {
-    // This is a link to a local package that doesn't exist anymore
-    if (gitPackages.dependencies && gitPackages.dependencies[depName]) {
-      console.log(
-        `🔄 Replacing broken link for ${depName} with git repository in dependencies`
-      );
-      packageJson.dependencies[depName] = gitPackages.dependencies[depName];
-      hasChanges = true;
-    } else {
-      console.warn(
-        `⚠️ Found broken link reference for ${depName} in dependencies but no git fallback defined in git_packages.json`
-      );
+if (packagesExist && hasPermission) {
+  // Check for link: dependencies that no longer exist in regular dependencies
+  for (const [depName, depValue] of Object.entries(
+      packageJson.dependencies || {}
+  )) {
+    if (
+        typeof depValue === "string" &&
+        depValue.startsWith("link:") &&
+        !(depName in localPackages)
+    ) {
+      // This is a link to a local package that doesn't exist anymore
+      if (gitPackages.dependencies && gitPackages.dependencies[depName]) {
+        console.log(
+            `🔄 Replacing broken link for ${depName} with git repository in dependencies`
+        );
+        packageJson.dependencies[depName] = gitPackages.dependencies[depName];
+        hasChanges = true;
+      } else {
+        console.warn(
+            `⚠️ Found broken link reference for ${depName} in dependencies but no git fallback defined in git_packages.json`
+        );
+      }
     }
   }
-}
 
-// Check for link: dependencies that no longer exist in devDependencies
-for (const [depName, depValue] of Object.entries(
-  packageJson.devDependencies || {}
-)) {
-  if (
-    typeof depValue === "string" &&
-    depValue.startsWith("link:") &&
-    !(depName in localPackages)
-  ) {
-    // This is a link to a local package that doesn't exist anymore
-    if (gitPackages.devDependencies && gitPackages.devDependencies[depName]) {
-      console.log(
-        `🔄 Replacing broken link for ${depName} with git repository in devDependencies`
-      );
-      packageJson.devDependencies[depName] =
-        gitPackages.devDependencies[depName];
-      hasChanges = true;
-    } else {
-      console.warn(
-        `⚠️ Found broken link reference for ${depName} in devDependencies but no git fallback defined in git_packages.json`
-      );
+  // Check for link: dependencies that no longer exist in devDependencies
+  for (const [depName, depValue] of Object.entries(
+      packageJson.devDependencies || {}
+  )) {
+    if (
+        typeof depValue === "string" &&
+        depValue.startsWith("link:") &&
+        !(depName in localPackages)
+    ) {
+      // This is a link to a local package that doesn't exist anymore
+      if (gitPackages.devDependencies && gitPackages.devDependencies[depName]) {
+        console.log(
+            `🔄 Replacing broken link for ${depName} with git repository in devDependencies`
+        );
+        packageJson.devDependencies[depName] =
+            gitPackages.devDependencies[depName];
+        hasChanges = true;
+      } else {
+        console.warn(
+            `⚠️ Found broken link reference for ${depName} in devDependencies but no git fallback defined in git_packages.json`
+        );
+      }
     }
   }
 }
@@ -211,11 +247,11 @@ for (const [depName, depValue] of Object.entries(
 function sortObjectByKeys(obj) {
   if (!obj) return {};
   return Object.keys(obj)
-    .sort()
-    .reduce((result, key) => {
-      result[key] = obj[key];
-      return result;
-    }, {});
+      .sort()
+      .reduce((result, key) => {
+        result[key] = obj[key];
+        return result;
+      }, {});
 }
 
 // Always sort dependencies and devDependencies, even if no other changes were made
@@ -242,11 +278,11 @@ if (packageJson.devDependencies) {
 if (hasChanges) {
   console.log("📝 Updating package.json with changes");
   fs.writeFileSync(
-    packageJsonPath,
-    JSON.stringify(packageJson, null, 2) + "\n"
+      packageJsonPath,
+      JSON.stringify(packageJson, null, 2) + "\n"
   );
   console.log(
-    "✅ package.json updated successfully with alphabetically sorted dependencies"
+      "✅ package.json updated successfully with alphabetically sorted dependencies"
   );
 } else {
   console.log("✅ No changes needed in package.json");
