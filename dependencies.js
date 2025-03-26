@@ -4,7 +4,7 @@ const fs = require("fs");
 const path = require("path");
 
 // Configuration
-const PACKAGES_DIR = "packages"; // Directory for local packages
+const PACKAGES_DIR = ".."; // Directory for local packages
 const GIT_PACKAGES_PATH = path.resolve("./git_packages.json");
 
 // Check if git_packages.json exists
