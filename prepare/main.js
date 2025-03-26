@@ -15,6 +15,7 @@ const setupGoogleServiceInfo = require("./google_service_info");
 const setupKeychainsIos = require("./keychains_ios");
 const setupKeychainsAndroid = require("./keychains_android");
 const copyLauncherIcons = require("./ic_launcher");
+const changeIOSLocalIp = require("./ios_local_ip");
 
 // Console colors for better output
 const colors = {
@@ -232,6 +233,9 @@ function updateIosConfig(config) {
     logoIcon: config.LOGO_ICON,
     iosProjectName: config.IOS_PROJECT_NAME,
   });
+
+  const appDelegatePath = `ios/${config.IOS_PROJECT_NAME}/AppDelegate.mm`;
+  changeIOSLocalIp(appDelegatePath);
 
   log("iOS configuration updated successfully.", colors.green);
 }
@@ -475,7 +479,7 @@ function showHelp() {
     "  --app-icon       Path to 1024x1024 PNG image for app icon (overrides config file)"
   );
   log(
-    "  --logo           Path to 64x64 PNG image for ic_logo (overrides config file)"
+    "  --logo           Path to x64 PNG image for ic_logo (overrides config file)"
   );
   log(
     "  --autoVersionCode [0|1]  Auto-increment version numbers (0=disabled, 1=enabled, default: 0)"
