@@ -21,19 +21,19 @@ const packageJsonPath = path.resolve("./package.json");
 const packageJson = require(packageJsonPath);
 
 // Ensure workspace configuration is correct
-if (
-  !packageJson.workspaces ||
-  !packageJson.workspaces.includes(`${PACKAGES_DIR}/*`)
-) {
-  if (!packageJson.workspaces) {
-    packageJson.workspaces = [`${PACKAGES_DIR}/*`];
-  } else if (Array.isArray(packageJson.workspaces)) {
-    if (!packageJson.workspaces.includes(`${PACKAGES_DIR}/*`)) {
-      packageJson.workspaces.push(`${PACKAGES_DIR}/*`);
-    }
-  }
-  console.log(`📝 Updated workspaces to include "${PACKAGES_DIR}/*"`);
-}
+// if (
+//   !packageJson.workspaces ||
+//   !packageJson.workspaces.includes(`${PACKAGES_DIR}/*`)
+// ) {
+//   if (!packageJson.workspaces) {
+//     packageJson.workspaces = [`${PACKAGES_DIR}/*`];
+//   } else if (Array.isArray(packageJson.workspaces)) {
+//     if (!packageJson.workspaces.includes(`${PACKAGES_DIR}/*`)) {
+//       packageJson.workspaces.push(`${PACKAGES_DIR}/*`);
+//     }
+//   }
+//   console.log(`📝 Updated workspaces to include "${PACKAGES_DIR}/*"`);
+// }
 
 // Check if the packages directory exists
 const packagesDir = path.resolve(`./${PACKAGES_DIR}`);
