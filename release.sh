@@ -117,9 +117,6 @@ build_android() {
   echo "Creating AAB for Google Play Store..."
   ./gradlew clean
 
-  echo "Syncing..."
-  ./gradlew build
-
    echo "Bundling release..."
   ./gradlew bundleRelease
 
